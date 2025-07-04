@@ -11,7 +11,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
     O-nline 
 **/
 
-contract Trigo_Deck {
+contract Trigo_Deck is Ownable {
+    // CONF
+    bool private    mock = true;
+
     // Deck: array containing the deck of cards
     uint8[] private cards;
 
@@ -22,8 +25,12 @@ contract Trigo_Deck {
     uint8 public    palyers_count;
     uint8 public    max_players;
     uint8 public    min_players;
+    mapping(address => bool) public isPlayer;
 
-    constructor(uint[8] _decksize, uint8 _minplayers, uint8 _maxplayers ) Ownable {
+    bool  public    game_started = false;
+    bool  public    game_ended = false; 
+
+    constructor(uint8 _decksize, uint8 _minplayers, uint8 _maxplayers )  Ownable(msg.sender) {
         // Set deck length
         deck_lenght = _decksize;
         // Seg game players
@@ -37,41 +44,48 @@ contract Trigo_Deck {
     }
 
 
-
     /** User functions */
-    function  joinGame() payable {
+    function  joinGame() public {
+        require (game_started == false, 'Sorry your are late' );
         require (palyers_count < max_players, 'max players reached');
+        isPlayer[msg.sender] = true;
         palyers_count ++; 
+
     }
 
 
     /** Game functions */
-    function startGame() external onyOwner {
-        require (palyers_count == max_players, 'Not enought players');
+    function startGame() external onlyOwner {
+        require (palyers_count >= min_players, 'Not enought players');
+        shuffle();
+        game_started = true;
     }
 
 
-    function endGame() external onyOwner {}
-
-
+    function endGame() external onlyOwner {
+        game_ended = true;
+    }
 
 
     /**
     * Implement the Fisher-Yates Shuffle (aka Knuth shuffle)
     * @dev Shuffles the cards in a 52-card deck.
     **/
-    function shuffle() external onlyOwner{
+    function shuffle() internal onlyOwner {
         // Get random number from Sapphire as bytes --> hash
-        bytes memory rnd = Sapphire.randomBytes(32, "trigo-deck");
+        bytes memory rnd;
         
-        // MOCK: 
-        // bytes memory rnd = abi.encodePacked(
-        //     keccak256(abi.encodePacked(
-        //         block.timestamp,
-        //         block.number,
-        //         msg.sender
-        //     ))
-        // );
+        if (mock) {
+            rnd = abi.encodePacked(
+                keccak256(abi.encodePacked(
+                    block.timestamp,
+                    block.number,
+                    msg.sender
+                ))
+            );
+        } else {
+            rnd = Sapphire.randomBytes(32, "trigo-deck");
+        }
     
         // hash --> uint
         uint256 rndInt = uint256(keccak256(rnd));
@@ -100,8 +114,10 @@ contract Trigo_Deck {
     }
 
     // Get the next card from the deck
-    function getNextCard() external view returns(uint8){
-        require (dealed < deck_lenght, "Index out of range");
+    function getNextCard() external returns(uint8){
+        require (game_started == true, 'Start game first');
+        require (game_ended == false, 'Game ended');
+        require (dealed < deck_lenght, "Deck empty");
         return cards[dealed++];
     }
 }
