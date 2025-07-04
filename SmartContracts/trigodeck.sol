@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity =0.8.24
 
 import "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -46,8 +46,8 @@ contract Trigo_Deck is Ownable {
 
     /** User functions */
     function  joinGame() public {
-        require (game_started == false, 'Sorry your are late' );
-        require (palyers_count < max_players, 'max players reached');
+        require (game_started == false, "Sorry your are late" );
+        require (palyers_count < max_players, "max players reached");
         isPlayer[msg.sender] = true;
         palyers_count ++; 
 
@@ -56,7 +56,7 @@ contract Trigo_Deck is Ownable {
 
     /** Game functions */
     function startGame() external onlyOwner {
-        require (palyers_count >= min_players, 'Not enought players');
+        require (palyers_count >= min_players, "Not enought players");
         shuffle();
         game_started = true;
     }
@@ -105,18 +105,22 @@ contract Trigo_Deck is Ownable {
 
     // Get the hash of the shuffled deck
     function getDeckHash() external view returns (bytes32) {
+        require (game_started == true, "Start game first");
+        require (game_ended == false, "Game ended");
         return keccak256(abi.encodePacked(cards));
     }
 
     // Return the whole deck
     function getDeck() external view returns (uint8[] memory) {
+        require (game_started == true, "Start game first");
+        require (game_ended == false, "Game ended");
         return cards;
     }
 
     // Get the next card from the deck
     function getNextCard() external returns(uint8){
-        require (game_started == true, 'Start game first');
-        require (game_ended == false, 'Game ended');
+        require (game_started == true, "Start game first");
+        require (game_ended == false, "Game ended");
         require (dealed < deck_lenght, "Deck empty");
         return cards[dealed++];
     }
