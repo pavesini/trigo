@@ -9,8 +9,7 @@ from eth_account import Account
 from eth_account.signers.local import LocalAccount
 
 from sapphirepy import sapphire
-
-
+from web3 import Web3
 
 #*****************************************************************************#
 #   INITIALIZE: Blockchain connection etc
@@ -306,7 +305,18 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 # Stops the game
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await manage_endgame(update, context)
-    
+    txt, user_cards, table_cards = manage_endgame()
+    await update.message.reply_text(format_endgame_str(txt, user_cards, table_cards))
+
+
+async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    deck = contract.functions.getDeck().call()
+    commitment = contract.functions.getHandHashes().call()[:-1]
+    hash_bytes = Web3.solidity_keccak(['uint8[]'], [deck])
+    print(commitment)
+    print(hash_bytes.hex())
+    await update.message.reply_text(f"Verified: {hash_bytes.hex() == commitment}")    
+
 
 #*****************************************************************************#
 #   COMMAND HANDLERS DEFINITION
@@ -317,6 +327,7 @@ app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("init", init))
 app.add_handler(CommandHandler("draw", draw))
 app.add_handler(CommandHandler("stop", stop))
+app.add_handler(CommandHandler("verify", verify))
 
 app.add_handler(CallbackQueryHandler(button_callback))
 
