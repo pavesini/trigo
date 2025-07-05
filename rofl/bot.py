@@ -73,17 +73,24 @@ async def spin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     public_key = update.message.text.lstrip("/init")
-    contract.functions.joinGame(bytes.fromhex(public_key)).transact(
+    tx_hash = contract.functions.joinGame(bytes.fromhex(public_key)).transact(
         {
             "gasPrice": w3.eth.gas_price,
-            "gas": 300_000
+            # "gas": 300_000
         }
     )
-    print("joined")
-    contract.functions.startGame().call()
-    print("started")
+    w3.eth.wait_for_transaction_receipt(tx_hash)
+    print(f"joined {tx_hash}")
+    tx_hash = contract.functions.startGame().transact(
+        {
+            "gasPrice": w3.eth.gas_price,
+            # "gas": 300_000
+        }
+    )
+    w3.eth.wait_for_transaction_receipt(tx_hash)
+    print(f"started {tx_hash}")
     deck = contract.functions.getDeck().call()
-    print("deck")
+    print(f"deck {deck}")
     # Get the first 2 cards and assign to the user
     s1, r1 = map_index_to_card(deck[0])
     s2, r2 = map_index_to_card(deck[1])
