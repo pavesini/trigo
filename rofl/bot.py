@@ -35,7 +35,7 @@ w3 = sapphire.wrap(w3, account)
 w3.eth.default_account = account.address
 # async_w3 = sapphire.wrap(async_w3, account)
 
-contract_address = "0x58cf2A13280892872aeAf7663aCCf9D55a122aae"
+contract_address = "0xBD108Ad4A73FC569233B122DeC8B6c2a824237F2"
 with open("BlackjackABI.json") as f:
     contract_abi = json.load(f)
 
