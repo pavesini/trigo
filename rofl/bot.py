@@ -210,7 +210,6 @@ async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         }
     )
     tx_rcp = w3.eth.wait_for_transaction_receipt(tx_hash)
-    print(f"joined {tx_rcp}")
     # TBD: check tx_rcp outcome (status)
 
     await msg.edit_text(text="_Joining the game\\.\\.\\._", parse_mode="MarkdownV2")
@@ -223,7 +222,6 @@ async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         }
     )
     tx_rcp = w3.eth.wait_for_transaction_receipt(tx_hash)
-    print(f"joined {tx_rcp}")
     # TBD: check tx_rcp outcome (status)
 
     await msg.edit_text(text="_Starting the game\\.\\.\\._", parse_mode="MarkdownV2")
@@ -235,13 +233,11 @@ async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         }
     )
     tx_rcp = w3.eth.wait_for_transaction_receipt(tx_hash)
-    print(f"started {tx_rcp}")
     # TBD: check tx_rcp outcome (status)
 
     await msg.edit_text(text="_Shuffling the deck\\.\\.\\._", parse_mode="MarkdownV2")
 
     deck = contract.functions.getDeck().call()
-    print(f"deck {deck}")
 
     await msg.edit_text(text="_Dealing the cards\\.\\.\\._", parse_mode="MarkdownV2")
     # Get the first 2 cards and assign to the user
@@ -249,12 +245,13 @@ async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     card2 = map_index_to_card(deck[1])
 
     # The third card is the one assigned to the bank
-    contract.functions.incDeckState(3).transact(
+    tx_hash = contract.functions.incDeckState(3).transact(
         {
             "gasPrice": w3.eth.gas_price,
             # "gas": 300_000
         }
     )
+    tx_rcp = w3.eth.wait_for_transaction_receipt(tx_hash)
 
     await msg.delete()
 
@@ -271,11 +268,8 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     msg = await context.bot.send_message(chat_id, text="_Drawing a card\\.\\.\\._", disable_notification=True, parse_mode="MarkdownV2")
 
-    print("A01")
     deck_state = contract.functions.deck_state().call()
-    print("A02")
     deck = contract.functions.getDeck().call()
-    print("A03")
 
     tx_hash = contract.functions.incDeckState(1).transact(
         {
@@ -284,7 +278,6 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         }
     )
     tx_rcp = w3.eth.wait_for_transaction_receipt(tx_hash)
-    print(f"started {tx_rcp}")
 
     user_cards = [map_index_to_card(deck[index]) for index in range(deck_state + 1) if index != 2]
     user_cards_ranks = [user_card[1] for user_card in user_cards]
@@ -306,17 +299,15 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 # Stops the game
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await manage_endgame(update, context)
-    txt, user_cards, table_cards = manage_endgame()
+    txt, user_cards, table_cards = manage_endgame(update, context)
     await update.message.reply_text(format_endgame_str(txt, user_cards, table_cards))
 
 
 async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     deck = contract.functions.getDeck().call()
-    commitment = contract.functions.getHandHashes().call()[:-1]
+    commitment = contract.functions.getDeckHash().call()[0]
     hash_bytes = Web3.solidity_keccak(['uint8[]'], [deck])
-    print(commitment)
-    print(hash_bytes.hex())
-    await update.message.reply_text(f"Verified: {hash_bytes.hex() == commitment}")    
+    await update.message.reply_text(f"Verified: {hash_bytes.hex() == commitment.hex()}")
 
 
 #*****************************************************************************#
