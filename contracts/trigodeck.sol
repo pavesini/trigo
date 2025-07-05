@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.24;
 
-import {// Subcall} from "@oasisprotocol/sapphire-contracts/contracts/// Subcall.sol";
+import {Subcall} from "@oasisprotocol/sapphire-contracts/contracts/Subcall.sol";
 import "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
 // import "@openzeppelin/contracts/access/Ownable.sol";
 
