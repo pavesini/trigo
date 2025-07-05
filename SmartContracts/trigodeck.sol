@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.24
 
+import {Subcall} from "@oasisprotocol/sapphire-contracts/contracts/Subcall.sol";
 import "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -29,8 +30,10 @@ contract Trigo_Deck is Ownable {
 
     bool  public    game_started = false;
     bool  public    game_ended = false; 
+    bytes21 public  roflAppID;
 
-    constructor(uint8 _decksize, uint8 _minplayers, uint8 _maxplayers )  Ownable(msg.sender) {
+    constructor(bytes21 _roflAppID, uint8 _decksize, uint8 _minplayers, uint8 _maxplayers )  Ownable(msg.sender) {
+        roflAppID = _roflAppID;
         // Set deck length
         deck_lenght = _decksize;
         // Seg game players
@@ -46,6 +49,8 @@ contract Trigo_Deck is Ownable {
 
     /** User functions */
     function  joinGame() public {
+        // Ensure only the authorized ROFL app can submit.
+        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (game_started == false, "Sorry your are late" );
         require (palyers_count < max_players, "max players reached");
         isPlayer[msg.sender] = true;
@@ -56,6 +61,8 @@ contract Trigo_Deck is Ownable {
 
     /** Game functions */
     function startGame() external onlyOwner {
+        // Ensure only the authorized ROFL app can submit.
+        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (palyers_count >= min_players, "Not enought players");
         shuffle();
         game_started = true;
@@ -63,6 +70,8 @@ contract Trigo_Deck is Ownable {
 
 
     function endGame() external onlyOwner {
+        // Ensure only the authorized ROFL app can submit.
+        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         game_ended = true;
     }
 
@@ -72,6 +81,8 @@ contract Trigo_Deck is Ownable {
     * @dev Shuffles the cards in a 52-card deck.
     **/
     function shuffle() internal onlyOwner {
+        // Ensure only the authorized ROFL app can submit.
+        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         // Get random number from Sapphire as bytes --> hash
         bytes memory rnd;
         
@@ -118,10 +129,10 @@ contract Trigo_Deck is Ownable {
     }
 
     // Get the next card from the deck
-    function getNextCard() external returns(uint8){
-        require (game_started == true, "Start game first");
-        require (game_ended == false, "Game ended");
-        require (dealed < deck_lenght, "Deck empty");
-        return cards[dealed++];
-    }
+    // function getNextCard() external returns(uint8){
+    //     require (game_started == true, "Start game first");
+    //     require (game_ended == false, "Game ended");
+    //     require (dealed < deck_lenght, "Deck empty");
+    //     return cards[dealed++];
+    // }
 }
