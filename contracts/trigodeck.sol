@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.24;
 
-import {Subcall} from "@oasisprotocol/sapphire-contracts/contracts/Subcall.sol";
+import {// Subcall} from "@oasisprotocol/sapphire-contracts/contracts/// Subcall.sol";
 import "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
 // import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -90,7 +90,7 @@ contract Trigo_Deck /* is Ownable */ {
     /** User Joins game */
     function  joinGame(bytes32 _publicKey) public {
         // Ensure only the authorized ROFL app can submit.
-        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (game_stage == 0, "Sorry your are late" );
         require (palyers_count < max_players, "Max players reached");
         require (ContractStorage[msg.sender] == bytes32(0x00), "Already playing" );
@@ -111,7 +111,7 @@ contract Trigo_Deck /* is Ownable */ {
         require (game_stage == 0, "wrong stage for start");
         require (palyers_count >= min_players, "Not enought players");
         // Ensure only the authorized ROFL app can submit.
-        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         shuffle();
         game_stage = 1;
 
@@ -128,7 +128,7 @@ contract Trigo_Deck /* is Ownable */ {
         require (this_hand_hash == _deckHash, "Get the hash before");
 
         // Ensure only the authorized ROFL app can submit.
-        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (palyers_count >= min_players, "Not enought players");
         shuffle();
         hand++;
@@ -142,7 +142,7 @@ contract Trigo_Deck /* is Ownable */ {
     function endGame() external /* onlyOwner */ {
         require (game_stage == 1, "wrong stage for end");
         // Ensure only the authorized ROFL app can submit.
-        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         game_stage == 2;
         emit GameEnded();
     }
@@ -158,7 +158,7 @@ contract Trigo_Deck /* is Ownable */ {
      */
     function shuffle() internal {
         // Ensure only the authorized ROFL app can submit.
-        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
 
         // Get random number from Sapphire as bytes --> hash
         bytes memory rnd;
@@ -178,7 +178,7 @@ contract Trigo_Deck /* is Ownable */ {
         // hash --> uint
         uint256 rndInt = uint256(keccak256(rnd));
 
-        // Perform 52 swaps using indInt as seed
+        // Perform 52 swaps using indInt as seeduu
         for (uint256 i = deck_size - 1; i > 0; i--) {
             // pseudo-random number generator from the seed 
             rndInt = uint256(keccak256(abi.encodePacked(rndInt, i)));
@@ -200,11 +200,10 @@ contract Trigo_Deck /* is Ownable */ {
         return handHashes;
     }
 
-
     // Return the whole deck
     function getDeck() external view returns (uint8[] memory) {
         // Ensure only the authorized ROFL app can submit.
-        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (game_stage == 1, "Start game first");
         return cards;
     }
@@ -213,7 +212,7 @@ contract Trigo_Deck /* is Ownable */ {
     // Store deck_state = next card to deal to players
     function incDeckState(uint8 _amount) external /* onlyOwner */ {
         // Ensure only the authorized ROFL app can submit.
-        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (deck_state + _amount <= deck_size, "Deck size exeeded");
         deck_state+=_amount;
         emit DeckStateUpdated(deck_state);
