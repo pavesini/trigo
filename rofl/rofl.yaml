@@ -21,6 +21,7 @@ deployments:
     network: testnet
     paratime: sapphire
     admin: trigo_testnet
+    oci_repository: rofl.sh/8b5def7d-b240-4842-896a-db11ee29cb25:1751752281
     trust_root:
       height: 27364455
       hash: cc57384924f5d32e8583e56678af8ae0d85abad492f7b1ad878d988f174ea7ab
@@ -30,8 +31,18 @@ deployments:
           tcb_validity_period: 30
           min_tcb_evaluation_data_number: 18
           tdx: {}
-      enclaves: []
+      enclaves:
+        - id: l/jpRAlQDyFo5Gedan3E6cVbtsvSL/5COeveB7O51mYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - id: fXMjwc06EDXLQ4xD2e+kTPBdw5WoVzqlqoCGcMvkB80AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
       endorsements:
         - any: {}
       fees: endorsing_node
       max_expiration: 3
+    secrets:
+      - name: TOKEN
+        value: pGJwa1ggm6h9lfvdQj037Eg6FnHjzGB9RQHHex2+7tl4WN6wRjVkbmFtZVUKuUDP6L9RtJ7YiVhER9DkT6ent9Zlbm9uY2VPbNf2FHmo9jJfNTIOzm/iZXZhbHVlWD6Sy/To7YjywXqUwtL96OEfyhlD+sfNbHCKBjyTGsTVhYW4IJMi1ArtkxWWWAT669h1tesLjp0lLVQurvNTeA==
+    machines:
+      default:
+        provider: oasis1qp2ens0hsp7gh23wajxa4hpetkdek3swyyulyrmz
+        offer: playground_short
+        id: 000000000000015a
