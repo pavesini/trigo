@@ -93,7 +93,6 @@ contract Trigo_Deck /* is Ownable */ {
         // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (game_stage == 0, "Sorry your are late" );
         require (palyers_count < max_players, "Max players reached");
-        require (ContractStorage[msg.sender] == bytes32(0x00), "Already playing" );
         ContractStorage[msg.sender] = _publicKey;
         palyers_count ++; 
 
@@ -103,6 +102,19 @@ contract Trigo_Deck /* is Ownable */ {
     /**************************************************************************
      * GAME FUNCTIONS
      */
+
+    /**
+     * Reset all game status elements
+     */
+
+    function resetGame() external {
+        game_stage = 0;
+        palyers_count = 0;
+        hand = 0;
+        deck_state = 0;
+        delete handHashes;
+    }
+
 
     /** 
      * Start a new game, shuffle deck, start game
