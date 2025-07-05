@@ -201,6 +201,8 @@ async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     # Get user public key
     public_key = update.message.text.lstrip("/init")
+    if not public_key:
+        return
 
     msg = await context.bot.send_message(chat_id, "_Joining game\\.\\.\\._", disable_notification=True, parse_mode="MarkdownV2")
 
