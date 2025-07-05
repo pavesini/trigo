@@ -22,27 +22,26 @@ contract Trigo_Deck is Ownable {
     mapping(address => bytes32) private ContractStorage;
 
     // Determine if contract runs in Remix/HH/Forge or Sapphire
-    bool private    mock;
+    bool private        mock;
 
     // Deck: array containing the deck of cards
-    uint8[] private cards;
+    uint8[][] private   cards;
 
     // Amount of cards in the deck
-    uint8 private   deck_lenght;
-    uint8 public    deck_state;
+    uint8 private       deck_size;
+    uint8 public        deck_state;
     
-    uint8 public    palyers_count;
-    uint8 public    max_players;
-    uint8 public    min_players;
-    mapping(address => bool) public isPlayer;
+    uint8 public        palyers_count;
+    uint8 public        max_players;
+    uint8 public        min_players;
 
-    uint public     hand;
-    bool public     hand_read;
+    uint  public        hand;
+    bytes32[] public    handHashes;
 
-    uint8 public    game_stage;     // 0: initial phase, players can join
-                                    // 1: game start, no join, shuffle
-                                    // 2: game end 
-    bytes21 public  roflAppID;      // 0x001122334455660011223344556600112233445566
+    uint8 public        game_stage;     // 0: initial phase, players can join
+                                        // 1: game start, no join, shuffle
+                                        // 2: game end 
+    bytes21 public      roflAppID;      // 0x001122334455660011223344556600112233445566
 
 
     /**************************************************************************
@@ -63,7 +62,7 @@ contract Trigo_Deck is Ownable {
     constructor(bytes21 _roflAppID, uint8 _decksize, uint8 _minplayers, uint8 _maxplayers )  Ownable(msg.sender) {
         roflAppID   = _roflAppID;
         // Set deck length
-        deck_lenght = _decksize;
+        deck_size   = _decksize;
         // Set game players
         max_players = _maxplayers;
         min_players = _minplayers;
@@ -78,7 +77,7 @@ contract Trigo_Deck is Ownable {
         );
 
         // Initialize a standard 52-card deck (0–51)
-        for (uint8 i = 0; i < deck_lenght; i++) {
+        for (uint8 i = 0; i < deck_size; i++) {
             cards.push(i);
         }
     }
@@ -89,13 +88,13 @@ contract Trigo_Deck is Ownable {
      */
 
     /** User Joins game */
-    function  joinGame() public {
+    function  joinGame(bytes32 _publicKey) public {
         // Ensure only the authorized ROFL app can submit.
         // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (game_stage == 0, "Sorry your are late" );
         require (palyers_count < max_players, "Max players reached");
-        require (isPlayer[msg.sender] == false, "Already playing" );
-        isPlayer[msg.sender] = true;
+        require (ContractStorage[msg.sender] == bytes32(0x00), "Already playing" );
+        ContractStorage[msg.sender] = _publicKey;
         palyers_count ++; 
 
         emit PlayerJoined(msg.sender);
@@ -113,7 +112,6 @@ contract Trigo_Deck is Ownable {
         require (palyers_count >= min_players, "Not enought players");
         // Ensure only the authorized ROFL app can submit.
         // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
-        require (palyers_count >= min_players, "Not enought players");
         shuffle();
         game_stage = 1;
 
@@ -123,9 +121,12 @@ contract Trigo_Deck is Ownable {
     /**
      * New Hand. Shuffle deck again for the same players
      */
-    function newHand() external onlyOwner {
+    function newHand(bytes32 _deckHash) external onlyOwner {
         require (game_stage == 1, "wrong stage for new hand");
-        require (hand_read == true, "Read deck first");
+
+        bytes32 this_hand_hash = keccak256(abi.encodePacked(cards));
+        require (this_hash == _deckHash, "Get the hash before");
+
         // Ensure only the authorized ROFL app can submit.
         // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (palyers_count >= min_players, "Not enought players");
@@ -178,7 +179,7 @@ contract Trigo_Deck is Ownable {
         uint256 rndInt = uint256(keccak256(rnd));
 
         // Perform 52 swaps using indInt as seed
-        for (uint256 i = deck_lenght - 1; i > 0; i--) {
+        for (uint256 i = deck_size - 1; i > 0; i--) {
             // pseudo-random number generator from the seed 
             rndInt = uint256(keccak256(abi.encodePacked(rndInt, i)));
             uint256 j = rndInt % (i + 1);
@@ -188,35 +189,33 @@ contract Trigo_Deck is Ownable {
 
         // This shuffled deck was never read
         deck_state = 0;
-        hand_read = false;
+        handHashes.push(keccak256(abi.encodePacked(cards)))
         emit DeckShuffled();
         emit DeckStateUpdated(deck_state); 
     }
 
 
     // Get the hash of the shuffled deck
-    function getDeckHash() external returns (bytes32) {
-        require (game_stage == 1, "Start game first");
-        hand_read = true;
-        return keccak256(abi.encodePacked(cards));
+    function getDeckHash() external  view returns (bytes32[]) {
+        return handHashes;
     }
 
 
     // Return the whole deck
-    function getDeck() external returns (uint8[] memory) {
+    function getDeck() external view returns (uint8[] memory) {
         // Ensure only the authorized ROFL app can submit.
         // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (game_stage == 1, "Start game first");
-        hand_read = true;
         return cards;
     }
 
 
     // Store deck_state = next card to deal to players
-    function incDeckState() external onlyOwner {
+    function incDeckState(uint8 _amount) external onlyOwner {
         // Ensure only the authorized ROFL app can submit.
         // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
-        deck_state++;
+        require (deck_state + _amount <= deck_size, "Deck size exeeded");
+        deck_state+=_amount;
         emit DeckStateUpdated(deck_state);
     }
 
