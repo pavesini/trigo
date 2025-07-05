@@ -59,7 +59,7 @@ contract Trigo_Deck is Ownable {
      * CONSTRUCTOR
      */
 
-    constructor(bytes21 _roflAppID, uint8 _decksize, uint8 _minplayers, uint8 _maxplayers )  Ownable(msg.sender) {
+    constructor(bytes21 _roflAppID, uint8 _decksize, uint8 _minplayers, uint8 _maxplayers, address boss )  Ownable(boss) {
         roflAppID   = _roflAppID;
         // Set deck length
         deck_size   = _decksize;
