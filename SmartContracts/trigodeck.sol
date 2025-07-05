@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.24
+pragma solidity =0.8.24;
 
 import {Subcall} from "@oasisprotocol/sapphire-contracts/contracts/Subcall.sol";
 import "@oasisprotocol/sapphire-contracts/contracts/Sapphire.sol";
@@ -13,24 +13,46 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 **/
 
 contract Trigo_Deck is Ownable {
-    // CONF
-    bool private    mock = true;
+
+    /**************************************************************************
+     * CONF and VARS
+     */
+
+    bool private    mock;
 
     // Deck: array containing the deck of cards
     uint8[] private cards;
 
     // Amount of cards in the deck
     uint8 private   deck_lenght;
-    uint8 public    dealed;
     
     uint8 public    palyers_count;
     uint8 public    max_players;
     uint8 public    min_players;
     mapping(address => bool) public isPlayer;
 
-    bool  public    game_started = false;
-    bool  public    game_ended = false; 
-    bytes21 public  roflAppID;
+    uint public     hand;
+    uint private    hand_read;
+
+    uint8 public    game_stage;             // 0: initial phase, players can join
+                                            // 1: game start, no join, shuffle
+                                            // 2: game end 
+    bytes21 public  roflAppID;              // 0x001122334455660011223344556600112233445566
+
+
+    /**************************************************************************
+     * EVENTS
+     */
+    event GameStarted();
+    event GameEnded();
+    event NewHand(uint hand);
+    event PlayerJoined(address player);
+    event DeckShuffled();
+
+
+    /**************************************************************************
+     * CONSTRUCTOR
+     */
 
     constructor(bytes21 _roflAppID, uint8 _decksize, uint8 _minplayers, uint8 _maxplayers )  Ownable(msg.sender) {
         roflAppID = _roflAppID;
@@ -39,6 +61,15 @@ contract Trigo_Deck is Ownable {
         // Seg game players
         max_players = _maxplayers;
         min_players = _minplayers;
+        game_stage  = 0;
+
+        // Are we on the Oasis or some local test etc?
+        mock = bool(
+            block.chainid != 23294 && // Oasis Sapphire
+            block.chainid != 23295 && // Oasis Sapphire Testnet
+            block.chainid != 42261 && // Oasis Emerald Testnet
+            block.chainid != 42262    // Oasis Emerald
+        );
 
         // Initialize a standard 52-card deck (0–51)
         for (uint8 i = 0; i < deck_lenght; i++) {
@@ -47,42 +78,81 @@ contract Trigo_Deck is Ownable {
     }
 
 
-    /** User functions */
+    /**************************************************************************
+     * USER FUNCTIONS
+     */
+
+    /** User Joins game */
     function  joinGame() public {
         // Ensure only the authorized ROFL app can submit.
-        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
-        require (game_started == false, "Sorry your are late" );
-        require (palyers_count < max_players, "max players reached");
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        require (game_stage == 0, "Sorry your are late" );
+        require (palyers_count < max_players, "Max players reached");
+        require (isPlayer[msg.sender] == false, "Already playing" );
         isPlayer[msg.sender] = true;
         palyers_count ++; 
 
+        emit PlayerJoined(msg.sender);
     }
 
+    /**************************************************************************
+     * GAME FUNCTIONS
+     */
 
-    /** Game functions */
+    /** 
+     * Start a new game, shuffle deck, start game
+     */
     function startGame() external onlyOwner {
+        require (game_stage == 0, "wrong stage for start");
+        require (palyers_count >= min_players, "Not enought players");
         // Ensure only the authorized ROFL app can submit.
-        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (palyers_count >= min_players, "Not enought players");
         shuffle();
-        game_started = true;
+        game_stage = 1;
+
+        emit GameStarted();
     }
 
-
-    function endGame() external onlyOwner {
+    /**
+     * New Hand. Shuffle deck again for the same players
+     */
+    function newHand() external onlyOwner {
+        require (game_stage == 1, "wrong stage for new hand");
+        require (hand_read == true, "Read deck first");
         // Ensure only the authorized ROFL app can submit.
-        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
-        game_ended = true;
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        require (palyers_count >= min_players, "Not enought players");
+        shuffle();
+        hand++;
+        emit NewHand(hand);
     }
 
+
+    /** 
+     * End the game
+     */
+    function endGame() external onlyOwner {
+        require (game_stage == 1, "wrong stage for end");
+        // Ensure only the authorized ROFL app can submit.
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        game_stage == 2;
+        emit GameEnded();
+    }
+
+
+    /**************************************************************************
+     * DECK FUNCTIONS
+     */
 
     /**
     * Implement the Fisher-Yates Shuffle (aka Knuth shuffle)
     * @dev Shuffles the cards in a 52-card deck.
     **/
-    function shuffle() internal onlyOwner {
+    function shuffle() internal {
         // Ensure only the authorized ROFL app can submit.
-        Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+
         // Get random number from Sapphire as bytes --> hash
         bytes memory rnd;
         
@@ -110,29 +180,21 @@ contract Trigo_Deck is Ownable {
             (cards[i], cards[j]) = (cards[j], cards[i]);
         }
 
-        // Start again from the first card
-        dealed = 0;
+        // This shuffled deck was never read
+        hand_read = false;
     }
 
     // Get the hash of the shuffled deck
     function getDeckHash() external view returns (bytes32) {
-        require (game_started == true, "Start game first");
-        require (game_ended == false, "Game ended");
+        require (game_stage == 1, "Start game first");
         return keccak256(abi.encodePacked(cards));
+        hand_read = true;
     }
 
     // Return the whole deck
     function getDeck() external view returns (uint8[] memory) {
-        require (game_started == true, "Start game first");
-        require (game_ended == false, "Game ended");
+        require (game_stage == 1, "Start game first");
         return cards;
+        hand_read = true;
     }
-
-    // Get the next card from the deck
-    // function getNextCard() external returns(uint8){
-    //     require (game_started == true, "Start game first");
-    //     require (game_ended == false, "Game ended");
-    //     require (dealed < deck_lenght, "Deck empty");
-    //     return cards[dealed++];
-    // }
 }
