@@ -299,8 +299,6 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 # Stops the game
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await manage_endgame(update, context)
-    txt, user_cards, table_cards = manage_endgame(update, context)
-    await update.message.reply_text(format_endgame_str(txt, user_cards, table_cards))
 
 
 async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
