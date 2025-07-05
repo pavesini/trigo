@@ -154,6 +154,8 @@ async def manage_endgame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     )
     w3.eth.wait_for_transaction_receipt(tx_hash)
 
+    await msg.delete()
+
     if table_points >= user_points:
         with open("gif/over.gif", "rb") as f:
             await context.bot.send_animation(
