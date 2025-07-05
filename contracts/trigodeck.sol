@@ -189,7 +189,7 @@ contract Trigo_Deck is Ownable {
 
         // This shuffled deck was never read
         deck_state = 0;
-        handHashes.push(keccak256(abi.encodePacked(cards)))
+        handHashes.push(keccak256(abi.encodePacked(cards)));
         emit DeckShuffled();
         emit DeckStateUpdated(deck_state); 
     }
