@@ -1,31 +1,5 @@
 [
 	{
-		"inputs": [
-			{
-				"internalType": "bytes21",
-				"name": "_roflAppID",
-				"type": "bytes21"
-			},
-			{
-				"internalType": "uint8",
-				"name": "_decksize",
-				"type": "uint8"
-			},
-			{
-				"internalType": "uint8",
-				"name": "_minplayers",
-				"type": "uint8"
-			},
-			{
-				"internalType": "uint8",
-				"name": "_maxplayers",
-				"type": "uint8"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
 		"anonymous": false,
 		"inputs": [],
 		"name": "DeckShuffled",
@@ -97,6 +71,110 @@
 	},
 	{
 		"inputs": [],
+		"name": "endGame",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint8",
+				"name": "_amount",
+				"type": "uint8"
+			}
+		],
+		"name": "incDeckState",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_publicKey",
+				"type": "bytes32"
+			}
+		],
+		"name": "joinGame",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "_deckHash",
+				"type": "bytes32"
+			}
+		],
+		"name": "newHand",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "resetGame",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_key",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_value",
+				"type": "bytes32"
+			}
+		],
+		"name": "setStorage",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "startGame",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes21",
+				"name": "_roflAppID",
+				"type": "bytes21"
+			},
+			{
+				"internalType": "uint8",
+				"name": "_decksize",
+				"type": "uint8"
+			},
+			{
+				"internalType": "uint8",
+				"name": "_minplayers",
+				"type": "uint8"
+			},
+			{
+				"internalType": "uint8",
+				"name": "_maxplayers",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
 		"name": "deck_state",
 		"outputs": [
 			{
@@ -106,13 +184,6 @@
 			}
 		],
 		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "endGame",
-		"outputs": [],
-		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -206,32 +277,6 @@
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "uint8",
-				"name": "_amount",
-				"type": "uint8"
-			}
-		],
-		"name": "incDeckState",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "bytes32",
-				"name": "_publicKey",
-				"type": "bytes32"
-			}
-		],
-		"name": "joinGame",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "max_players",
 		"outputs": [
@@ -258,19 +303,6 @@
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "bytes32",
-				"name": "_deckHash",
-				"type": "bytes32"
-			}
-		],
-		"name": "newHand",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "palyers_count",
 		"outputs": [
@@ -294,31 +326,6 @@
 			}
 		],
 		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_key",
-				"type": "address"
-			},
-			{
-				"internalType": "bytes32",
-				"name": "_value",
-				"type": "bytes32"
-			}
-		],
-		"name": "setStorage",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "startGame",
-		"outputs": [],
-		"stateMutability": "nonpayable",
 		"type": "function"
 	}
 ]

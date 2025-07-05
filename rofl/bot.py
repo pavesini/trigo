@@ -1,8 +1,8 @@
 import os
 import json
 import enum
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
 from web3 import Web3, AsyncWeb3
 from web3.middleware import SignAndSendRawMiddlewareBuilder
 from eth_account import Account
@@ -41,14 +41,35 @@ with open("BlackjackABI.json") as f:
 
 contract = w3.eth.contract(address=contract_address, abi=contract_abi)
 
-SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
+SUITS = ["♠️", "♥️", "♦️", "♣️"]
 RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
-
+DRAW_STOP_REPLY = InlineKeyboardMarkup(
+    [
+        [InlineKeyboardButton("Draw", callback_data="draw")],
+        [InlineKeyboardButton("Stop", callback_data="stop")]
+    ]
+)
 
 
 #*****************************************************************************#
 #   HELPER FUNCTIONS
 #*****************************************************************************#
+
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()  # Acknowledge the callback
+    
+    # Dictionary mapping callback_data to functions
+    functions = {
+        "draw": draw,
+        "stop": stop,
+    }
+    
+    # Call the appropriate function based on callback_data
+    if query.data in functions:
+        await functions[query.data](update, context)
+    else:
+        await query.edit_message_text("Unknown action!")
 
 
 # Turn card number into playing card
@@ -79,7 +100,9 @@ def ranks_to_points(ranks: list[str]) -> int:
 
 
 
-def manage_endgame() -> (str, list[(str, str)], list[(str, str)]):
+async def manage_endgame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_chat.id
+
     deck_state = contract.functions.deck_state().call()
     deck = contract.functions.getDeck().call()
     user_cards = [map_index_to_card(deck[index]) for index in range(deck_state) if index != 2]
@@ -88,7 +111,7 @@ def manage_endgame() -> (str, list[(str, str)], list[(str, str)]):
     
     table_cards = [map_index_to_card(deck[2])]
     if user_points > 21:
-        # Hai perso
+        msg = await context.bot.send_message(chat_id, text="_You busted! Ending the game\\.\\.\\._", disable_notification=True, parse_mode='MarkdownV2V2')
         tx_hash = contract.functions.endGame().transact(
             {
                 "gasPrice": w3.eth.gas_price,
@@ -96,15 +119,22 @@ def manage_endgame() -> (str, list[(str, str)], list[(str, str)]):
             }  
         )
         w3.eth.wait_for_transaction_receipt(tx_hash)
-        return "Hai perso", user_cards, table_cards
+
+        with open("templates/loose.html", "r") as f:
+            await msg.edit_text(
+                text=f.read(),
+                parse_mode='HTML'
+            )
+
+        await context.bot.send_message(format_endgame_str(user_cards, table_cards))
+
+        return
     
+    msg = await context.bot.send_message(chat_id, text="_Drawing cards for the table\\.\\.\\._", disable_notification=True, parse_mode="MarkdownV2")
+
     table_cards_ranks = [c[1] for c in table_cards]
     table_points = ranks_to_points(table_cards_ranks)
     while table_points < 17:
-        print(f"table point: {table_points}")
-        print(f"table cards: {table_cards}")
-        print(f"user cards: {user_cards}")
-
         table_cards.append(map_index_to_card(deck[len(user_cards) + len(table_cards)]))
         table_cards_ranks = [c[1] for c in table_cards]
         table_points = ranks_to_points(table_cards_ranks)
@@ -125,21 +155,35 @@ def manage_endgame() -> (str, list[(str, str)], list[(str, str)]):
     w3.eth.wait_for_transaction_receipt(tx_hash)
 
     if table_points >= user_points:
-        # Hai perso
-        return "Hai perso", user_cards, table_cards
+        with open("templates/loose.html", "r") as f:
+            await msg.edit_text(
+                text=f.read(),
+                parse_mode='HTML'
+            )
+
+        await context.bot.send_message(format_endgame_str(user_cards, table_cards))
     else:
-        # Hai vinto
-        return "Hai vinto", user_cards, table_cards
+        with open("templates/win.html", "r") as f:
+            await msg.edit_text(
+                text=f.read(),
+                parse_mode='HTML'
+            )
+
+        await context.bot.send_message(format_endgame_str(user_cards, table_cards))
 
 
 
 # Show cards at the end of the game
-def format_endgame_str(txt, user_cards, table_cards) -> str:
-    user_cards_str = " ".join([f"{y[0]} {y[1]}" for y in user_cards])
-    table_cards_str = " ".join([f"{y[0]} {y[1]}" for y in table_cards])
+def format_endgame_str(user_cards, table_cards) -> str:
+    user_cards_str = " | ".join([f"{y[0]} {y[1]}" for y in user_cards])
+    table_cards_str = " | ".join([f"{y[0]} {y[1]}" for y in table_cards])
 
-    return f"{txt}\nyour cards: {user_cards_str}\ntable_cards: {table_cards_str}\n"
+    return f"Your cards\n{user_cards_str}\n\nTable cards\n{table_cards_str}\n"
 
+
+
+def format_user_cards_str(user_cards):
+    return "Your cards\n" + " | ".join([f"{y[0]} {y[1]}" for y in user_cards])
 
 
 #*****************************************************************************#
@@ -155,11 +199,15 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 # Start a game
 async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_chat.id
+
     # Get user public key
     public_key = update.message.text.lstrip("/init")
 
+    msg = await context.bot.send_message(chat_id, "_Joining game\\.\\.\\._", disable_notification=True, parse_mode="MarkdownV2")
+
     # Reset smart contract
-    tx_hash = contract.functions.resetGame(bytes.fromhex(public_key)).transact(
+    tx_hash = contract.functions.resetGame().transact(
         {
             "gasPrice": w3.eth.gas_price,
             # "gas": 300_000
@@ -169,6 +217,7 @@ async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     print(f"joined {tx_rcp}")
     # TBD: check tx_rcp outcome (status)
 
+    await msg.edit_text(text="_Joining the game\\.\\.\\._", parse_mode="MarkdownV2")
 
     # Do joinGame transaction
     tx_hash = contract.functions.joinGame(bytes.fromhex(public_key)).transact(
@@ -181,6 +230,8 @@ async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     print(f"joined {tx_rcp}")
     # TBD: check tx_rcp outcome (status)
 
+    await msg.edit_text(text="_Starting the game\\.\\.\\._", parse_mode="MarkdownV2")
+
     tx_hash = contract.functions.startGame().transact(
         {
             "gasPrice": w3.eth.gas_price,
@@ -191,11 +242,15 @@ async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     print(f"started {tx_rcp}")
     # TBD: check tx_rcp outcome (status)
 
+    await msg.edit_text(text="_Shuffling the deck\\.\\.\\._", parse_mode="MarkdownV2")
+
     deck = contract.functions.getDeck().call()
     print(f"deck {deck}")
+
+    await msg.edit_text(text="_Dealing the cards\\.\\.\\._", parse_mode="MarkdownV2")
     # Get the first 2 cards and assign to the user
-    s1, r1 = map_index_to_card(deck[0])
-    s2, r2 = map_index_to_card(deck[1])
+    card1 = map_index_to_card(deck[0])
+    card2 = map_index_to_card(deck[1])
 
     # The third card is the one assigned to the bank
     contract.functions.incDeckState(3).transact(
@@ -204,16 +259,28 @@ async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             # "gas": 300_000
         }
     )
+
+    await msg.delete()
+
     # Show the two cards to the user
-    await update.message.reply_text(f"{s1}{r1}, {s2}{r2}")
+    await update.message.reply_text(
+        text=format_user_cards_str([card1, card2]),
+        reply_markup=DRAW_STOP_REPLY
+    )
 
 
 
 # User asks for one more card
 async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_chat.id
+    msg = await context.bot.send_message(chat_id, text="_Drawing a card\\.\\.\\._", disable_notification=True, parse_mode="MarkdownV2")
+
+    print("A01")
     deck_state = contract.functions.deck_state().call()
+    print("A02")
     deck = contract.functions.getDeck().call()
-    s1, r1 = map_index_to_card(deck[deck_state])
+    print("A03")
+
     tx_hash = contract.functions.incDeckState(1).transact(
         {
             "gasPrice": w3.eth.gas_price,
@@ -222,22 +289,23 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
     tx_rcp = w3.eth.wait_for_transaction_receipt(tx_hash)
     print(f"started {tx_rcp}")
-    # TBD: check tx_rcp outcome (status)
 
-    user_cards_ranks = [map_index_to_card(deck[index])[1] for index in range(deck_state + 1) if index != 2]
+    user_cards = [map_index_to_card(deck[index]) for index in range(deck_state + 1) if index != 2]
+    user_cards_ranks = [user_card[1] for user_card in user_cards]
     points = ranks_to_points(user_cards_ranks)
-    if points >= 21:
-        txt, user_cards, table_cards = manage_endgame()
-        await update.message.reply_text(format_endgame_str(txt, user_cards, table_cards))
-    else:
-        await update.message.reply_text(f"{s1}{r1}")
 
+    await msg.edit_text(
+        text=format_user_cards_str(user_cards),
+        reply_markup=DRAW_STOP_REPLY
+    )
+
+    if points >= 21:
+        await manage_endgame(update, context)
 
 
 # Stops the game
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    txt, user_cards, table_cards = manage_endgame()
-    await update.message.reply_text(format_endgame_str(txt, user_cards, table_cards))
+    await manage_endgame(update, context)
     
 
 #*****************************************************************************#
@@ -249,5 +317,7 @@ app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("init", init))
 app.add_handler(CommandHandler("draw", draw))
 app.add_handler(CommandHandler("stop", stop))
+
+app.add_handler(CallbackQueryHandler(button_callback))
 
 app.run_polling()
