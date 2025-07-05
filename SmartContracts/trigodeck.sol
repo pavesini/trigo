@@ -18,6 +18,10 @@ contract Trigo_Deck is Ownable {
      * CONF and VARS
      */
 
+    // Internal private storage
+    mapping(address => bytes32) private ContractStorage;
+
+    // Determine if contract runs in Remix/HH/Forge or Sapphire
     bool private    mock;
 
     // Deck: array containing the deck of cards
@@ -25,6 +29,7 @@ contract Trigo_Deck is Ownable {
 
     // Amount of cards in the deck
     uint8 private   deck_lenght;
+    uint8 public    deck_state;
     
     uint8 public    palyers_count;
     uint8 public    max_players;
@@ -32,12 +37,12 @@ contract Trigo_Deck is Ownable {
     mapping(address => bool) public isPlayer;
 
     uint public     hand;
-    uint private    hand_read;
+    bool public     hand_read;
 
-    uint8 public    game_stage;             // 0: initial phase, players can join
-                                            // 1: game start, no join, shuffle
-                                            // 2: game end 
-    bytes21 public  roflAppID;              // 0x001122334455660011223344556600112233445566
+    uint8 public    game_stage;     // 0: initial phase, players can join
+                                    // 1: game start, no join, shuffle
+                                    // 2: game end 
+    bytes21 public  roflAppID;      // 0x001122334455660011223344556600112233445566
 
 
     /**************************************************************************
@@ -48,17 +53,18 @@ contract Trigo_Deck is Ownable {
     event NewHand(uint hand);
     event PlayerJoined(address player);
     event DeckShuffled();
-
+    event DeckStateUpdated(uint deck_state);
+    event StorageSet(address key);
 
     /**************************************************************************
      * CONSTRUCTOR
      */
 
     constructor(bytes21 _roflAppID, uint8 _decksize, uint8 _minplayers, uint8 _maxplayers )  Ownable(msg.sender) {
-        roflAppID = _roflAppID;
+        roflAppID   = _roflAppID;
         // Set deck length
         deck_lenght = _decksize;
-        // Seg game players
+        // Set game players
         max_players = _maxplayers;
         min_players = _minplayers;
         game_stage  = 0;
@@ -146,9 +152,9 @@ contract Trigo_Deck is Ownable {
      */
 
     /**
-    * Implement the Fisher-Yates Shuffle (aka Knuth shuffle)
-    * @dev Shuffles the cards in a 52-card deck.
-    **/
+     * Implement the Fisher-Yates Shuffle (aka Knuth shuffle)
+     * @dev Shuffles the cards in a 52-card deck.
+     */
     function shuffle() internal {
         // Ensure only the authorized ROFL app can submit.
         // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
@@ -181,20 +187,51 @@ contract Trigo_Deck is Ownable {
         }
 
         // This shuffled deck was never read
+        deck_state = 0;
         hand_read = false;
+        emit DeckShuffled();
+        emit DeckStateUpdated(deck_state); 
     }
+
 
     // Get the hash of the shuffled deck
-    function getDeckHash() external view returns (bytes32) {
+    function getDeckHash() external returns (bytes32) {
         require (game_stage == 1, "Start game first");
-        return keccak256(abi.encodePacked(cards));
         hand_read = true;
+        return keccak256(abi.encodePacked(cards));
     }
 
+
     // Return the whole deck
-    function getDeck() external view returns (uint8[] memory) {
+    function getDeck() external returns (uint8[] memory) {
+        // Ensure only the authorized ROFL app can submit.
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
         require (game_stage == 1, "Start game first");
-        return cards;
         hand_read = true;
+        return cards;
+    }
+
+
+    // Store deck_state = next card to deal to players
+    function incDeckState() external onlyOwner {
+        // Ensure only the authorized ROFL app can submit.
+        // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
+        deck_state++;
+        emit DeckStateUpdated(deck_state);
+    }
+
+
+    /**************************************************************************
+     * STORAGE FUNCTIONS (key-value store)
+     */
+
+    function setStorage(address _key, bytes32 _value) external onlyOwner {
+        ContractStorage[_key] = _value;
+        emit StorageSet(_key);
+    }
+
+
+    function getStorage (address _key) external view onlyOwner returns (bytes32) {
+        return ContractStorage[_key];
     }
 }
