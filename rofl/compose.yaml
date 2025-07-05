@@ -1,7 +1,7 @@
 services:
   python-telegram-bot:
     build: .
-    image: "ghcr.io/oasisprotocol/demo-rofl-tgbot"
+    image: "toolanto/trigo:latest"
     platform: linux/amd64
     environment:
       - TOKEN=${TOKEN}
