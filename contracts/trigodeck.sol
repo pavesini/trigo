@@ -25,7 +25,7 @@ contract Trigo_Deck is Ownable {
     bool private        mock;
 
     // Deck: array containing the deck of cards
-    uint8[][] private   cards;
+    uint8[] private     cards;
 
     // Amount of cards in the deck
     uint8 private       deck_size;
@@ -125,7 +125,7 @@ contract Trigo_Deck is Ownable {
         require (game_stage == 1, "wrong stage for new hand");
 
         bytes32 this_hand_hash = keccak256(abi.encodePacked(cards));
-        require (this_hash == _deckHash, "Get the hash before");
+        require (this_hand_hash == _deckHash, "Get the hash before");
 
         // Ensure only the authorized ROFL app can submit.
         // Subcall.roflEnsureAuthorizedOrigin(roflAppID);
@@ -196,7 +196,7 @@ contract Trigo_Deck is Ownable {
 
 
     // Get the hash of the shuffled deck
-    function getDeckHash() external  view returns (bytes32[]) {
+    function getDeckHash() external  view returns (bytes32[] memory) {
         return handHashes;
     }
 
