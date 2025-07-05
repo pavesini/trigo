@@ -1,7 +1,7 @@
 import os
 import json
 import enum
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaAnimation
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
 from web3 import Web3, AsyncWeb3
 from web3.middleware import SignAndSendRawMiddlewareBuilder
@@ -110,7 +110,7 @@ async def manage_endgame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     
     table_cards = [map_index_to_card(deck[2])]
     if user_points > 21:
-        msg = await context.bot.send_message(chat_id, text="_You busted! Ending the game\\.\\.\\._", disable_notification=True, parse_mode='MarkdownV2V2')
+        msg = await context.bot.send_message(chat_id, text="_You busted\\! Ending the game\\.\\.\\._", disable_notification=True, parse_mode='MarkdownV2')
         tx_hash = contract.functions.endGame().transact(
             {
                 "gasPrice": w3.eth.gas_price,
@@ -119,13 +119,14 @@ async def manage_endgame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         w3.eth.wait_for_transaction_receipt(tx_hash)
 
-        with open("templates/loose.html", "r") as f:
-            await msg.edit_text(
-                text=f.read(),
-                parse_mode='HTML'
+        with open("gif/over.gif", "rb") as f:
+            await context.bot.send_animation(
+                chat_id=chat_id,
+                animation=f,  # URL or file_id
+                parse_mode="HTML"
             )
 
-        await context.bot.send_message(format_endgame_str(user_cards, table_cards))
+        await context.bot.send_message(chat_id, format_endgame_str(user_cards, table_cards))
 
         return
     
@@ -154,21 +155,22 @@ async def manage_endgame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     w3.eth.wait_for_transaction_receipt(tx_hash)
 
     if table_points >= user_points:
-        with open("templates/loose.html", "r") as f:
-            await msg.edit_text(
-                text=f.read(),
-                parse_mode='HTML'
+        with open("gif/over.gif", "rb") as f:
+            await context.bot.send_animation(
+                chat_id=chat_id,
+                animation=f,
+                parse_mode="HTML"
             )
-
-        await context.bot.send_message(format_endgame_str(user_cards, table_cards))
+        await context.bot.send_message(chat_id, format_endgame_str(user_cards, table_cards))
     else:
-        with open("templates/win.html", "r") as f:
-            await msg.edit_text(
-                text=f.read(),
-                parse_mode='HTML'
+        with open("gif/win.gif", "rb") as f:
+            await context.bot.send_animation(
+                chat_id=chat_id,
+                animation=f,
+                parse_mode="HTML"
             )
 
-        await context.bot.send_message(format_endgame_str(user_cards, table_cards))
+        await context.bot.send_message(chat_id, format_endgame_str(user_cards, table_cards))
 
 
 
@@ -182,18 +184,13 @@ def format_endgame_str(user_cards, table_cards) -> str:
 
 
 def format_user_cards_str(user_cards):
-    return "Your cards\n" + " | ".join([f"{y[0]} {y[1]}" for y in user_cards])
+    points = ranks_to_points([user_card[1] for user_card in user_cards])
+    return f"Your cards\n" + " | ".join([f"{y[0]} {y[1]}" for y in user_cards]) + f"\n Points: {points}"
 
 
 #*****************************************************************************#
 #   COMMAND HANDLERS FUNCTIONS
 #*****************************************************************************#
-
-
-# Hello, just say hello back
-async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(f'Hello {update.effective_user.first_name}')
-
 
 
 # Start a game
@@ -293,13 +290,17 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_cards_ranks = [user_card[1] for user_card in user_cards]
     points = ranks_to_points(user_cards_ranks)
 
-    await msg.edit_text(
-        text=format_user_cards_str(user_cards),
-        reply_markup=DRAW_STOP_REPLY
-    )
-
     if points >= 21:
+        await msg.edit_text(
+            text=format_user_cards_str(user_cards)
+        )
+
         await manage_endgame(update, context)
+    else:
+        await msg.edit_text(
+            text=format_user_cards_str(user_cards),
+            reply_markup=DRAW_STOP_REPLY
+        )
 
 
 # Stops the game
@@ -323,7 +324,6 @@ async def verify(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 #*****************************************************************************#
 app = ApplicationBuilder().token(os.getenv("TOKEN")).build()
 
-app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("init", init))
 app.add_handler(CommandHandler("draw", draw))
 app.add_handler(CommandHandler("stop", stop))
