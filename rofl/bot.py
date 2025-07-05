@@ -12,11 +12,11 @@ from sapphirepy import sapphire
 
 
 w3 = Web3(Web3.HTTPProvider(sapphire.NETWORKS['sapphire-testnet']))
-async_w3 = AsyncWeb3(
-    AsyncWeb3.AsyncHTTPProvider(
-        sapphire.NETWORKS['sapphire-testnet']
-    )
-)
+# async_w3 = AsyncWeb3(
+#     AsyncWeb3.AsyncHTTPProvider(
+#         sapphire.NETWORKS['sapphire-testnet']
+#     )
+# )
 
 account: LocalAccount = (
     Account.from_key(  # pylint: disable=no-value-for-parameter
@@ -27,20 +27,14 @@ w3.middleware_onion.add(SignAndSendRawMiddlewareBuilder.build(account))
 
 
 w3 = sapphire.wrap(w3, account)
-async_w3 = sapphire.wrap(async_w3, account)
+w3.eth.default_account = account.address
+# async_w3 = sapphire.wrap(async_w3, account)
 
 contract_address = "0xf3E77ab2D17Cc7C62836eB99DF851AbC83E5BEbb"
 with open("BlackjackABI.json") as f:
     contract_abi = json.load(f)
 
 contract = w3.eth.contract(address=contract_address, abi=contract_abi)
-tx_hash = trigo.constructor().transact({"gasPrice": w3.eth.gas_price})
-tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
-trigo = w3.eth.contract(
-    address=tx_receipt["contractAddress"], abi=contract_abi
-)
-
 
 SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
 RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
@@ -74,30 +68,35 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def spin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    result = trigo.functions.spin().call()
+    result = contract.functions.spin().call()
     await update.message.reply_text(f'Hello {update.effective_user.first_name}, spin {result}')
 
 async def init(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     public_key = update.message.text.lstrip("/init")
-    trigo.functions.joinGame(bytes.fromhex(public_key)).call()
+    contract.functions.joinGame(bytes.fromhex(public_key)).transact(
+        {
+            "gasPrice": w3.eth.gas_price,
+            "gas": 300_000
+        }
+    )
     print("joined")
-    trigo.functions.startGame().call()
+    contract.functions.startGame().call()
     print("started")
-    deck = trigo.functions.getDeck().call()
+    deck = contract.functions.getDeck().call()
     print("deck")
     # Get the first 2 cards and assign to the user
     s1, r1 = map_index_to_card(deck[0])
     s2, r2 = map_index_to_card(deck[1])
 
     # The third card is the one assigned to the bank
-    trigo.functions.incDeckState(3).call()
+    contract.functions.incDeckState(3).call()
     
     await update.message.reply_text(f"{s1}{r1}, {s2}{r2}")
 
 
 def manage_endgame() -> (str, list[(str, str)], list[(str, str)]):
-    deck_state = trigo.functions.deck_state().call()
-    deck = trigo.functions.getDeck().call()
+    deck_state = contract.functions.deck_state().call()
+    deck = contract.functions.getDeck().call()
     user_cards = [map_index_to_card(deck[index]) for index in range(deck_state) if index != 2]
     user_cards_ranks = [c[1] for c in user_cards]
     user_points = ranks_to_points(user_cards_ranks)
@@ -105,7 +104,7 @@ def manage_endgame() -> (str, list[(str, str)], list[(str, str)]):
     table_cards = [deck[2]]
     if user_points > 21:
         # Hai perso
-        trigo.functions.endGame().call()
+        contract.functions.endGame().call()
         
         return "Hai perso", user_cards, table_cards
     
@@ -113,8 +112,8 @@ def manage_endgame() -> (str, list[(str, str)], list[(str, str)]):
     while table_points < 17:
         table_cards.append(map_index_to_card)
 
-    trigo.functions.incDeckState(len(table_cards) - 1).call()
-    trigo.functions.endGame().call()
+    contract.functions.incDeckState(len(table_cards) - 1).call()
+    contract.functions.endGame().call()
 
     if table_points >= user_points:
         # Hai perso
@@ -132,10 +131,10 @@ def format_endgame_str(txt, user_cards, table_cards) -> str:
 
 
 async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    deck_state = trigo.functions.deck_state().call()
-    deck = trigo.functions.getDeck().call()
+    deck_state = contract.functions.deck_state().call()
+    deck = contract.functions.getDeck().call()
     s1, r1 = map_index_to_card(deck[deck_state])
-    trigo.functions.incDeckState(1)
+    contract.functions.incDeckState(1)
     user_cards_ranks = [map_index_to_card(deck[index])[1] for index in 0..deck_state + 1 if index != 2]
     points = ranks_to_points(user_cards_ranks)
     if points >= 21:
