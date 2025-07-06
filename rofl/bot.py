@@ -156,7 +156,7 @@ async def manage_endgame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     await msg.delete()
 
-    if table_points >= user_points:
+    if table_points <= 21 and table_points >= user_points:
         with open("/bot/gif/over.gif", "rb") as f:
             await context.bot.send_animation(
                 chat_id=chat_id,
