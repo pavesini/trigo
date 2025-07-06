@@ -32,8 +32,8 @@ deployments:
           min_tcb_evaluation_data_number: 18
           tdx: {}
       enclaves:
-        - id: 3kHqdavnZhbnGsJ8XcK/sfOzOqwHaWXxVBbTnqz4Y28AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-        - id: pU1gyrY2yOFtAuorecxP6qE34SKSLgfzhfux4VL8sdkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - id: nU7HjlMlcga9zrN1pwPgEcG2YGdQ3vAYwL2O19wqYhQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+        - id: 6mlxhDGe2Z1CSnAfWX5AVrI7o3egQQpC98JDn686HuAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
       endorsements:
         - any: {}
       fees: endorsing_node
@@ -45,4 +45,4 @@ deployments:
       default:
         provider: oasis1qp2ens0hsp7gh23wajxa4hpetkdek3swyyulyrmz
         offer: playground_short
-        id: 000000000000015a
+        id: 000000000000015e
