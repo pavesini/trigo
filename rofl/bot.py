@@ -34,7 +34,7 @@ w3 = sapphire.wrap(w3, account)
 w3.eth.default_account = account.address
 # async_w3 = sapphire.wrap(async_w3, account)
 
-contract_address = "0x0BdD4Fbc5853503988D6b027D17400C813693612"
+contract_address = "0x32C8760193c986c61A08808b793C106b57B9A164"
 with open("BlackjackABI.json") as f:
     contract_abi = json.load(f)
 
@@ -119,7 +119,7 @@ async def manage_endgame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         w3.eth.wait_for_transaction_receipt(tx_hash)
 
-        with open("gif/over.gif", "rb") as f:
+        with open("/bot/gif/over.gif", "rb") as f:
             await context.bot.send_animation(
                 chat_id=chat_id,
                 animation=f,  # URL or file_id
@@ -156,8 +156,8 @@ async def manage_endgame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     await msg.delete()
 
-    if table_points >= user_points:
-        with open("gif/over.gif", "rb") as f:
+    if table_points <= 21 and table_points >= user_points:
+        with open("/bot/gif/over.gif", "rb") as f:
             await context.bot.send_animation(
                 chat_id=chat_id,
                 animation=f,
@@ -165,7 +165,7 @@ async def manage_endgame(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
         await context.bot.send_message(chat_id, format_endgame_str(user_cards, table_cards))
     else:
-        with open("gif/win.gif", "rb") as f:
+        with open("/bot/gif/win.gif", "rb") as f:
             await context.bot.send_animation(
                 chat_id=chat_id,
                 animation=f,
