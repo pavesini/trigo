@@ -1,7 +1,7 @@
 services:
   python-telegram-bot:
     build: .
-    image: "docker.io/toolanto/trigo:5ff584b4b8b9c"
+    image: "docker.io/toolanto/trigo:bc0dad3a7d743"
     platform: linux/amd64
     environment:
       - TOKEN=${TOKEN}
