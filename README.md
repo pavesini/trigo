@@ -22,6 +22,10 @@ TR.I.G.O aims to solve this problem by leveraging oasis.network Sapphire platofo
 
 Use Oasis TEE and Saphire to ensure no thampering happened on the deck during the game
 
+## Youtube Video
+
+https://youtu.be/Hj3oZIk6O80
+
 ## Future improvements
 - allow multiple tables with a contract fatory
 - remove the Casino all together and let the players play P2P
